@@ -21,19 +21,15 @@ const poolConfig = process.env.DATABASE_URL
       connectionTimeoutMillis: 2000,
     };
 
+// 👇 add these logs
+console.log('Using DATABASE_URL?', !!process.env.DATABASE_URL);
+if (process.env.DATABASE_URL) {
+  try {
+    const parts = process.env.DATABASE_URL.split('@')[1]?.split('?')[0];
+    console.log('DB host (from URL):', parts);
+  } catch {
+    console.log('Could not parse DB host from DATABASE_URL');
+  }
+}
+
 const pool = new Pool(poolConfig);
-
-// Test connection
-pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
-});
-
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
-});
-
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  pool
-};
