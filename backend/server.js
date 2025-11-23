@@ -5,25 +5,6 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const db = require('./database'); // 👈 add this near the top with other requires
-
-// ...
-
-// DB debug endpoint
-app.get('/api/debug/db', async (req, res, next) => {
-  try {
-    const result = await db.query('SELECT NOW()');
-    res.json({
-      ok: true,
-      time: result.rows[0].now,
-    });
-  } catch (err) {
-    console.error('DB debug error:', err);
-    next(err);
-  }
-});
-
-
 // Middleware
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
