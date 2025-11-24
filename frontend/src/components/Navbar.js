@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
 
   return (
     <nav className="navbar">
@@ -19,6 +19,9 @@ function Navbar() {
               <Link to="/my-listings" className="navbar-link">My Listings</Link>
               <Link to="/favorites" className="navbar-link">Favorites</Link>
               <Link to="/messages" className="navbar-link">Messages</Link>
+              {isAdmin && (
+                <Link to="/admin" className="navbar-link" style={{ color: 'var(--danger-color)' }}>Admin</Link>
+              )}
               <Link to="/profile" className="navbar-link">{user?.display_name}</Link>
               <button onClick={logout} className="btn btn-small btn-outline">Logout</button>
             </>

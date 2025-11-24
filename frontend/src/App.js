@@ -15,6 +15,9 @@ import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
+import AdminListings from './pages/AdminListings';
 
 import './App.css';
 
@@ -38,6 +41,21 @@ const PublicRoute = ({ children }) => {
   }
 
   return !isAuthenticated ? children : <Navigate to="/" replace />;
+};
+
+// Admin Route wrapper (redirect to home if not admin)
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading-container">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return isAdmin ? children : <Navigate to="/" replace />;
 };
 
 function AppContent() {
@@ -110,6 +128,30 @@ function AppContent() {
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/listings"
+            element={
+              <AdminRoute>
+                <AdminListings />
+              </AdminRoute>
             }
           />
           <Route path="*" element={<NotFound />} />

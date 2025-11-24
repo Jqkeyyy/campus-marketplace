@@ -100,4 +100,20 @@ export const imagesAPI = {
   }
 };
 
+// Admin API
+export const adminAPI = {
+  // User management
+  getAllUsers: () => api.get('/users'),
+  updateUserStatus: (userId, status) => api.patch(`/users/${userId}/status`, { status }),
+
+  // Listing management (uses existing endpoints with admin privileges)
+  getAllListings: (params) => api.get('/listings', { params: { ...params, include_all: true } }),
+  deleteListing: (listingId) => api.delete(`/listings/${listingId}`),
+
+  // Category management
+  createCategory: (categoryData) => api.post('/categories', categoryData),
+  updateCategory: (categoryId, categoryData) => api.put(`/categories/${categoryId}`, categoryData),
+  deleteCategory: (categoryId) => api.delete(`/categories/${categoryId}`),
+};
+
 export default api;
