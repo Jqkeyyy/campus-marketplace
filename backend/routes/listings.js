@@ -17,12 +17,7 @@ router.get('/', async (req, res) => {
   } = req.query;
 
   try {
-    let query = `
-      SELECT l."ListingID" as listing_id, l.title, l.description, l.condition, l.status,
-             l.price_cents, l.created_at, l.updated_at,
-             l."UserID" as user_id, l."CategoryID" as category_id,
-             c.name as category_name, u.display_name as seller_name,
-             (SELECT "URL" FROM "Image" WHERE "ListingID" = l."ListingID" AND is_primary = true LIMIT 1) as primary_image_url
+    let baseQuery = `
       FROM "Listing" l
       JOIN "Category" c ON l."CategoryID" = c."CategoryID"
       JOIN "User" u ON l."UserID" = u."UserID"
@@ -32,36 +27,47 @@ router.get('/', async (req, res) => {
     let paramCount = 1;
 
     if (search) {
-      query += ` AND (l.title ILIKE $${paramCount} OR l.description ILIKE $${paramCount})`;
+      baseQuery += ` AND (l.title ILIKE $${paramCount} OR l.description ILIKE $${paramCount})`;
       params.push(`%${search}%`);
       paramCount++;
     }
 
     if (category_id) {
-      query += ` AND l."CategoryID" = $${paramCount}`;
+      baseQuery += ` AND l."CategoryID" = $${paramCount}`;
       params.push(category_id);
       paramCount++;
     }
 
     if (min_price) {
-      query += ` AND l.price_cents >= $${paramCount}`;
+      baseQuery += ` AND l.price_cents >= $${paramCount}`;
       params.push(parseInt(min_price) * 100);
       paramCount++;
     }
 
     if (max_price) {
-      query += ` AND l.price_cents <= $${paramCount}`;
+      baseQuery += ` AND l.price_cents <= $${paramCount}`;
       params.push(parseInt(max_price) * 100);
       paramCount++;
     }
 
     if (condition) {
-      query += ` AND l.condition = $${paramCount}`;
+      baseQuery += ` AND l.condition = $${paramCount}`;
       params.push(condition);
       paramCount++;
     }
 
-    query += ` ORDER BY l.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+    // Get total count for pagination
+    const countResult = await db.query(`SELECT COUNT(*) ${baseQuery}`, params);
+    const total = parseInt(countResult.rows[0].count);
+
+    // Get paginated results
+    let query = `
+      SELECT l."ListingID" as listing_id, l.title, l.description, l.condition, l.status,
+             l.price_cents, l.created_at, l.updated_at,
+             l."UserID" as user_id, l."CategoryID" as category_id,
+             c.name as category_name, u.display_name as seller_name,
+             (SELECT "URL" FROM "Image" WHERE "ListingID" = l."ListingID" AND is_primary = true LIMIT 1) as primary_image_url
+      ${baseQuery} ORDER BY l.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     params.push(parseInt(limit), parseInt(offset));
 
     const result = await db.query(query, params);
@@ -72,9 +78,36 @@ router.get('/', async (req, res) => {
       price: listing.price_cents / 100
     }));
 
-    res.json(listings);
+    res.json({ listings, total, limit: parseInt(limit), offset: parseInt(offset) });
   } catch (error) {
     console.error('Get listings error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin: Get all listings (all statuses, no limit)
+router.get('/admin/all', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT l."ListingID" as listing_id, l.title, l.description, l.condition, l.status,
+              l.price_cents, l.created_at, l.updated_at,
+              l."UserID" as user_id, l."CategoryID" as category_id,
+              c.name as category_name, u.display_name as seller_name, u.email as seller_email,
+              (SELECT "URL" FROM "Image" WHERE "ListingID" = l."ListingID" AND is_primary = true LIMIT 1) as primary_image_url
+       FROM "Listing" l
+       JOIN "Category" c ON l."CategoryID" = c."CategoryID"
+       JOIN "User" u ON l."UserID" = u."UserID"
+       ORDER BY l.created_at DESC`
+    );
+
+    const listings = result.rows.map(listing => ({
+      ...listing,
+      price: listing.price_cents / 100
+    }));
+
+    res.json(listings);
+  } catch (error) {
+    console.error('Admin get all listings error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

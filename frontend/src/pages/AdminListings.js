@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { adminAPI, listingsAPI } from '../services/api';
+import { adminAPI } from '../services/api';
 
 function AdminListings() {
   const [listings, setListings] = useState([]);
@@ -16,7 +16,8 @@ function AdminListings() {
   const fetchListings = async () => {
     try {
       setLoading(true);
-      const response = await listingsAPI.getAll();
+      // Use admin endpoint to get all listings (all statuses, no limit)
+      const response = await adminAPI.getAllListings();
       setListings(Array.isArray(response.data) ? response.data : []);
       setError(null);
     } catch (err) {

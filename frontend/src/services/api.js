@@ -106,8 +106,8 @@ export const adminAPI = {
   getAllUsers: () => api.get('/users'),
   updateUserStatus: (userId, status) => api.patch(`/users/${userId}/status`, { status }),
 
-  // Listing management (uses existing endpoints with admin privileges)
-  getAllListings: (params) => api.get('/listings', { params: { ...params, include_all: true } }),
+  // Listing management - admin endpoint returns all listings (all statuses, no limit)
+  getAllListings: () => api.get('/listings/admin/all'),
   deleteListing: (listingId) => api.delete(`/listings/${listingId}`),
 
   // Category management

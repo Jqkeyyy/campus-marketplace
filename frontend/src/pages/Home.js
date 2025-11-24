@@ -10,8 +10,12 @@ function Home() {
   const [listings, setListings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const LIMIT = 50;
   const [filters, setFilters] = useState({
     search: '',
     category_id: '',
@@ -48,21 +52,42 @@ function Home() {
     }
   };
 
-  const fetchListings = async (searchFilters = filters) => {
+  const fetchListings = async (searchFilters = filters, append = false) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setOffset(0);
+      }
       setError(null);
       const params = Object.fromEntries(
         Object.entries(searchFilters).filter(([_, v]) => v !== '')
       );
+      params.limit = LIMIT;
+      params.offset = append ? offset : 0;
       const response = await listingsAPI.getAll(params);
-      setListings(response.data);
+      const { listings: newListings, total: totalCount } = response.data;
+
+      if (append) {
+        setListings(prev => [...prev, ...newListings]);
+        setOffset(prev => prev + LIMIT);
+      } else {
+        setListings(newListings);
+        setOffset(LIMIT);
+      }
+      setTotal(totalCount);
     } catch (err) {
       setError('Failed to load listings');
       console.error('Failed to fetch listings:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleLoadMore = () => {
+    fetchListings(filters, true);
   };
 
   const handleSearch = (e) => {
@@ -182,55 +207,72 @@ function Home() {
           </p>
         </div>
       ) : (
-        <div className="listings-grid">
-          {listings.map((listing) => (
-            <Link
-              key={listing.listing_id}
-              to={`/listings/${listing.listing_id}`}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <div className="card listing-card" style={{ position: 'relative' }}>
-                {listing.primary_image_url && (
-                  <img
-                    src={listing.primary_image_url}
-                    alt={listing.title}
-                    className="listing-card-image"
-                  />
-                )}
-                <button
-                  onClick={(e) => toggleFavorite(e, listing.listing_id)}
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    background: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    fontSize: '20px',
-                    transition: 'transform 0.2s',
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  title={favorites.has(listing.listing_id) ? 'Remove from favorites' : 'Add to favorites'}
-                >
-                  {favorites.has(listing.listing_id) ? '❤️' : '🤍'}
-                </button>
-                <h3 className="listing-card-title">{listing.title}</h3>
-                <p className="listing-card-price">${listing.price.toFixed(2)}</p>
-                <div className="listing-card-info">
-                  <span className="badge badge-primary">{listing.category_name}</span>
+        <>
+          <div className="listings-grid">
+            {listings.map((listing) => (
+              <Link
+                key={listing.listing_id}
+                to={`/listings/${listing.listing_id}`}
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                <div className="card listing-card" style={{ position: 'relative' }}>
+                  {listing.primary_image_url && (
+                    <img
+                      src={listing.primary_image_url}
+                      alt={listing.title}
+                      className="listing-card-image"
+                    />
+                  )}
+                  <button
+                    onClick={(e) => toggleFavorite(e, listing.listing_id)}
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '40px',
+                      height: '40px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      fontSize: '20px',
+                      transition: 'transform 0.2s',
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    title={favorites.has(listing.listing_id) ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    {favorites.has(listing.listing_id) ? '❤️' : '🤍'}
+                  </button>
+                  <h3 className="listing-card-title">{listing.title}</h3>
+                  <p className="listing-card-price">${listing.price.toFixed(2)}</p>
+                  <div className="listing-card-info">
+                    <span className="badge badge-primary">{listing.category_name}</span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+
+          {listings.length < total && (
+            <div style={{ textAlign: 'center', marginTop: '2rem', marginBottom: '2rem' }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                Showing {listings.length} of {total} listings
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
