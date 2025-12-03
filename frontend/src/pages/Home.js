@@ -1,7 +1,3 @@
-// This file contains all page components that will be split into individual files
-// Copy each component into its own file in the src/pages directory
-
-// ============= Home.js =============
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { listingsAPI, categoriesAPI, favoritesAPI } from '../services/api';
