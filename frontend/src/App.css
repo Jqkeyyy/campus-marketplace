@@ -166,6 +166,7 @@ body {
 .listing-card {
   cursor: pointer;
   border: 1px solid var(--border-color);
+  overflow: hidden;
 }
 
 .listing-card-image {
