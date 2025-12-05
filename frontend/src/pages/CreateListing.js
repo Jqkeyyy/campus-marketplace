@@ -11,8 +11,8 @@ function CreateListing() {
     condition: ''
   });
   const [categories, setCategories] = useState([]);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -40,16 +40,33 @@ function CreateListing() {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const files = Array.from(e.target.files);
+
+    // Validate file sizes
+    for (const file of files) {
       if (file.size > 5 * 1024 * 1024) {
-        setError('Image must be less than 5MB');
+        setError('Each image must be less than 5MB');
         return;
       }
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      setError('');
     }
+
+    // Limit to 5 images
+    if (files.length > 5) {
+      setError('Maximum 5 images allowed');
+      return;
+    }
+
+    setImageFiles(files);
+    const previews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(previews);
+    setError('');
+  };
+
+  const removeImage = (index) => {
+    const newFiles = imageFiles.filter((_, i) => i !== index);
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    setImageFiles(newFiles);
+    setImagePreviews(newPreviews);
   };
 
   const handleSubmit = async (e) => {
@@ -77,14 +94,18 @@ function CreateListing() {
         category_id: parseInt(formData.category_id)
       };
 
-      // Upload image if provided
-      if (imageFile) {
+      // Upload images if provided
+      if (imageFiles.length > 0) {
         setUploadingImage(true);
         try {
-          const uploadResponse = await imagesAPI.upload(imageFile);
-          listingData.images = [{ url: uploadResponse.data.url }];
+          const uploadedImages = [];
+          for (const file of imageFiles) {
+            const uploadResponse = await imagesAPI.upload(file);
+            uploadedImages.push({ url: uploadResponse.data.url });
+          }
+          listingData.images = uploadedImages;
         } catch (uploadErr) {
-          setError('Failed to upload image. Please try again.');
+          setError('Failed to upload images. Please try again.');
           setLoading(false);
           setUploadingImage(false);
           return;
@@ -213,34 +234,63 @@ function CreateListing() {
 
         {/* Image Upload (optional) */}
         <div className="form-group">
-          <label className="form-label">Image (optional)</label>
+          <label className="form-label">Images (optional)</label>
           <input
             type="file"
             className="form-input"
             accept="image/*"
+            multiple
             onChange={handleImageChange}
           />
           <small className="text-muted">
-            Upload an image of your item (max 5MB)
+            Upload up to 5 images of your item (max 5MB each)
           </small>
-          {imagePreview && (
-            <div className="mt-2">
-              <img
-                src={imagePreview}
-                alt="Preview"
-                style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
-              />
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ marginLeft: '10px', padding: '5px 10px' }}
-                onClick={() => {
-                  setImageFile(null);
-                  setImagePreview('');
-                }}
-              >
-                Remove
-              </button>
+          {imagePreviews.length > 0 && (
+            <div className="mt-2" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {imagePreviews.map((preview, index) => (
+                <div key={index} style={{ position: 'relative' }}>
+                  <img
+                    src={preview}
+                    alt={`Preview ${index + 1}`}
+                    style={{
+                      width: '150px',
+                      height: '150px',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      border: index === 0 ? '3px solid var(--primary-color)' : '1px solid var(--border-color)'
+                    }}
+                  />
+                  {index === 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '5px',
+                      left: '5px',
+                      background: 'var(--primary-color)',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}>
+                      Primary
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-small"
+                    style={{
+                      position: 'absolute',
+                      top: '5px',
+                      right: '5px',
+                      padding: '5px 10px',
+                      minWidth: 'auto'
+                    }}
+                    onClick={() => removeImage(index)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -252,7 +302,7 @@ function CreateListing() {
             className="btn btn-primary btn-large"
             disabled={loading}
           >
-            {uploadingImage ? 'Uploading image...' : loading ? 'Creating...' : 'Create Listing'}
+            {uploadingImage ? `Uploading ${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''}...` : loading ? 'Creating...' : 'Create Listing'}
           </button>
           <button
             type="button"

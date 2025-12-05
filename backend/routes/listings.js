@@ -284,6 +284,7 @@ router.put('/:listingId', authenticateToken, [
   body('title').optional().trim().isLength({ min: 3, max: 200 }),
   body('description').optional().trim().isLength({ min: 10, max: 5000 }),
   body('price').optional().isFloat({ min: 0 }),
+  body('category_id').optional().isInt(),
   body('condition').optional().isIn(['new', 'like_new', 'good', 'fair', 'poor']),
   body('status').optional().isIn(['active', 'sold', 'removed'])
 ], async (req, res) => {
@@ -307,7 +308,7 @@ router.put('/:listingId', authenticateToken, [
       return res.status(403).json({ error: 'Not authorized to update this listing' });
     }
 
-    const { title, description, price, condition, status } = req.body;
+    const { title, description, price, category_id, condition, status } = req.body;
     const updates = [];
     const params = [];
     let paramCount = 1;
@@ -327,6 +328,12 @@ router.put('/:listingId', authenticateToken, [
     if (price !== undefined) {
       updates.push(`price_cents = $${paramCount}`);
       params.push(Math.round(price * 100));
+      paramCount++;
+    }
+
+    if (category_id) {
+      updates.push(`"CategoryID" = $${paramCount}`);
+      params.push(category_id);
       paramCount++;
     }
 

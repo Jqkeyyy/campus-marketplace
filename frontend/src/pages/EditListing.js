@@ -90,6 +90,7 @@ function EditListing() {
         title: formData.title,
         description: formData.description,
         price: parseFloat(formData.price),
+        category_id: parseInt(formData.category_id),
         condition: formData.condition,
         status: formData.status
       };
@@ -169,22 +170,23 @@ function EditListing() {
           />
         </div>
 
-        {/* Category (read-only) */}
+        {/* Category */}
         <div className="form-group">
-          <label className="form-label">Category</label>
+          <label className="form-label">Category *</label>
           <select
             name="category_id"
             className="form-select"
             value={formData.category_id}
-            disabled
+            onChange={handleChange}
+            required
           >
+            <option value="">Select a category</option>
             {categories.map((cat) => (
               <option key={cat.category_id} value={cat.category_id}>
                 {cat.name}
               </option>
             ))}
           </select>
-          <small className="text-muted">Category cannot be changed</small>
         </div>
 
         {/* Condition */}
