@@ -50,9 +50,9 @@ function CreateListing() {
       }
     }
 
-    // Limit to 5 images
-    if (files.length > 5) {
-      setError('Maximum 5 images allowed');
+    // Limit to 10 images
+    if (files.length > 10) {
+      setError('Maximum 10 images allowed');
       return;
     }
 
@@ -243,7 +243,7 @@ function CreateListing() {
             onChange={handleImageChange}
           />
           <small className="text-muted">
-            Upload up to 5 images of your item (max 5MB each)
+            Upload up to 10 images of your item (max 5MB each)
           </small>
           {imagePreviews.length > 0 && (
             <div className="mt-2" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
