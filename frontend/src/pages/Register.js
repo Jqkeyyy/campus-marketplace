@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -11,15 +12,13 @@ function Register() {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verificationLink, setVerificationLink] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     // Validate @uww.edu or @test.com email (for development)
     const email = formData.email.toLowerCase();
@@ -48,11 +47,16 @@ function Register() {
         password: formData.password
       });
 
-      setSuccess(response.data.message);
-      // For testing only - show the verification link
-      if (response.data.verificationLink) {
-        setVerificationLink(response.data.verificationLink);
+      // Auto-login after successful registration
+      if (response.data.token && response.data.user) {
+        login(response.data.user, response.data.token);
+        navigate('/');
       }
+
+      // Email verification check commented out - users are immediately active
+      // if (response.data.verificationLink) {
+      //   setVerificationLink(response.data.verificationLink);
+      // }
     } catch (err) {
       console.error('Registration error:', err);
       if (err.response?.data?.errors) {
@@ -70,41 +74,28 @@ function Register() {
     <div className="card" style={{ maxWidth: '400px', margin: '0 auto' }}>
       <h2 className="page-title">Register</h2>
 
-      {success ? (
+      {/* Email verification message commented out - users are immediately active after registration */}
+      {/* {success ? (
         <div>
-          <div className="success-message" style={{ backgroundColor: '#d4edda', color: '#155724', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
+          <div className="success-message">
             {success}
           </div>
-          <p className="text-muted" style={{ marginBottom: '15px' }}>
+          <p className="text-muted">
             Please check your UWW email inbox and click the verification link to activate your account.
           </p>
-          {verificationLink && (
-            <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
-              <p style={{ fontSize: '12px', marginBottom: '5px' }}>
-                <strong>For Testing:</strong> Click the link below to verify
-              </p>
-              <a href={verificationLink} style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-                {verificationLink}
-              </a>
-            </div>
-          )}
-          <button
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            onClick={() => navigate('/login')}
-          >
+          <button className="btn btn-primary" onClick={() => navigate('/login')}>
             Go to Login
           </button>
         </div>
-      ) : (
-        <>
-          {error && <div className="error-message">{error}</div>}
-          <div style={{ backgroundColor: '#e7f3ff', padding: '10px', borderRadius: '4px', marginBottom: '20px' }}>
-            <p style={{ fontSize: '14px', margin: 0 }}>
-              <strong>Note:</strong> Only @uww.edu email addresses are allowed to register.
-            </p>
-          </div>
-          <form onSubmit={handleSubmit}>
+      ) : ( */}
+
+      {error && <div className="error-message">{error}</div>}
+      <div style={{ backgroundColor: '#e7f3ff', padding: '10px', borderRadius: '4px', marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', margin: 0 }}>
+          <strong>Note:</strong> Only @uww.edu email addresses are allowed to register.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Email * (@uww.edu)</label>
               <input
@@ -155,15 +146,15 @@ function Register() {
             required
           />
         </div>
-            <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-              {loading ? 'Creating Account...' : 'Register'}
-            </button>
-          </form>
-          <p className="text-center mt-3">
-            Already have an account? <Link to="/login">Login here</Link>
-          </p>
-        </>
-      )}
+        <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
+          {loading ? 'Creating Account...' : 'Register'}
+        </button>
+      </form>
+      <p className="text-center mt-3">
+        Already have an account? <Link to="/login">Login here</Link>
+      </p>
+
+      {/* )} Closing brace commented out with email verification */}
     </div>
   );
 }

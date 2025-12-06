@@ -11,7 +11,9 @@ function ListingDetail() {
   const [message, setMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageSuccess, setMessageSuccess] = useState(false);
-  
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showImageModal, setShowImageModal] = useState(false);
+
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -149,47 +151,90 @@ function ListingDetail() {
         {/* Images */}
         {listing.images && listing.images.length > 0 ? (
           <div className="mb-3">
-            <img
-              src={listing.images[0].url}
-              alt={listing.title}
+            {/* Main Image Display */}
+            <div
               style={{
                 width: '100%',
-                maxHeight: '400px',
-                objectFit: 'cover',
-                borderRadius: '8px'
+                height: '500px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                marginBottom: '1rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
-            />
+              onClick={() => setShowImageModal(true)}
+            >
+              <img
+                src={listing.images[selectedImageIndex].url}
+                alt={listing.title}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+
+            {/* Thumbnail Gallery */}
             {listing.images.length > 1 && (
-              <div className="flex gap-2 mt-2" style={{ overflowX: 'auto' }}>
-                {listing.images.slice(1).map((img, idx) => (
+              <div className="flex gap-2" style={{ overflowX: 'auto', padding: '0.5rem 0' }}>
+                {listing.images.map((img, idx) => (
                   <img
                     key={img.image_id}
                     src={img.url}
-                    alt={`${listing.title} ${idx + 2}`}
+                    alt={`${listing.title} ${idx + 1}`}
+                    onClick={() => setSelectedImageIndex(idx)}
                     style={{
                       width: '100px',
                       height: '100px',
                       objectFit: 'cover',
                       borderRadius: '4px',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      border: selectedImageIndex === idx ? '3px solid var(--primary-color)' : '2px solid var(--border-color)',
+                      flexShrink: 0,
+                      transition: 'all 0.2s'
                     }}
                   />
                 ))}
               </div>
             )}
+            <p className="text-muted mt-1" style={{ fontSize: '0.875rem' }}>
+              Click on image to view full size • {listing.images.length} image{listing.images.length > 1 ? 's' : ''}
+            </p>
           </div>
         ) : listing.primary_image_url ? (
-          <img
-            src={listing.primary_image_url}
-            alt={listing.title}
-            style={{
-              width: '100%',
-              maxHeight: '400px',
-              objectFit: 'cover',
-              borderRadius: '8px',
-              marginBottom: '1rem'
-            }}
-          />
+          <div className="mb-3">
+            <div
+              style={{
+                width: '100%',
+                height: '500px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onClick={() => setShowImageModal(true)}
+            >
+              <img
+                src={listing.primary_image_url}
+                alt={listing.title}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+            <p className="text-muted mt-1" style={{ fontSize: '0.875rem' }}>
+              Click on image to view full size
+            </p>
+          </div>
         ) : null}
 
         {/* Price */}
@@ -283,6 +328,135 @@ function ListingDetail() {
           </div>
         )}
       </div>
+
+      {/* Image Modal */}
+      {showImageModal && (listing.images?.length > 0 || listing.primary_image_url) && (
+        <div
+          onClick={() => setShowImageModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem'
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setShowImageModal(false)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '24px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1001
+            }}
+          >
+            ×
+          </button>
+
+          {/* Previous button */}
+          {listing.images && listing.images.length > 1 && selectedImageIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImageIndex(prev => prev - 1);
+              }}
+              style={{
+                position: 'absolute',
+                left: '20px',
+                background: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '50px',
+                height: '50px',
+                fontSize: '24px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1001
+              }}
+            >
+              ‹
+            </button>
+          )}
+
+          {/* Next button */}
+          {listing.images && listing.images.length > 1 && selectedImageIndex < listing.images.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImageIndex(prev => prev + 1);
+              }}
+              style={{
+                position: 'absolute',
+                right: '20px',
+                background: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '50px',
+                height: '50px',
+                fontSize: '24px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1001
+              }}
+            >
+              ›
+            </button>
+          )}
+
+          {/* Image */}
+          <img
+            src={listing.images?.[selectedImageIndex]?.url || listing.primary_image_url}
+            alt={listing.title}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain'
+            }}
+          />
+
+          {/* Image counter */}
+          {listing.images && listing.images.length > 1 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(255, 255, 255, 0.9)',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                color: '#1e293b',
+                fontWeight: '500',
+                fontSize: '14px'
+              }}
+            >
+              {selectedImageIndex + 1} / {listing.images.length}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
