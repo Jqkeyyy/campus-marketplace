@@ -44,7 +44,7 @@ function Register() {
       const result = await register({
         email: formData.email,
         display_name: formData.display_name,
-        phone: formData.phone || null,
+        phone: formData.phone.trim() || null,
         password: formData.password
       });
 

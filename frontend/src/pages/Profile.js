@@ -38,7 +38,7 @@ function Profile() {
     try {
       const response = await authAPI.updateProfile({
         display_name: formData.display_name,
-        phone: formData.phone || null
+        phone: formData.phone.trim() || null
       });
 
       // Update user in AuthContext

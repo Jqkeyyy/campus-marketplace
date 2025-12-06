@@ -16,7 +16,7 @@ router.post('/register', [
     return true;
   }),
   body('display_name').trim().isLength({ min: 2, max: 100 }),
-  body('phone').optional().isMobilePhone(),
+  body('phone').trim().optional({ checkFalsy: true }).isMobilePhone(),
   body('password').isLength({ min: 6 })
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -141,7 +141,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 // Update user profile
 router.put('/me', authenticateToken, [
   body('display_name').optional().trim().isLength({ min: 2, max: 100 }),
-  body('phone').optional().isMobilePhone()
+  body('phone').trim().optional({ checkFalsy: true }).isMobilePhone()
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
