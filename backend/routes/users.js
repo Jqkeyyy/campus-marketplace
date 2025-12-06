@@ -57,7 +57,7 @@ router.post('/register', [
       message: 'Registration successful! You can now log in.',
       token,
       user: {
-        UserID: user.UserID,
+        user_id: user.UserID,
         email: user.email,
         display_name: user.display_name,
         phone: user.phone,
@@ -110,7 +110,11 @@ router.post('/login', [
       { expiresIn: '7d' }
     );
 
-    const { password_hash, ...userWithoutSensitiveData } = user;
+    const { password_hash, UserID, ...rest } = user;
+    const userWithoutSensitiveData = {
+      user_id: UserID,
+      ...rest
+    };
     res.json({ user: userWithoutSensitiveData, token });
   } catch (error) {
     console.error('Login error:', error);
@@ -122,7 +126,7 @@ router.post('/login', [
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT "UserID", email, display_name, phone, created_at, is_admin, status
+      `SELECT "UserID" as user_id, email, display_name, phone, created_at, is_admin, status
        FROM "User" WHERE "UserID" = $1`,
       [req.user.UserID]
     );
