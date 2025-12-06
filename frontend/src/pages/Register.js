@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 function Register() {
@@ -12,13 +11,15 @@ function Register() {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     // Validate @uww.edu or @test.com email (for development)
     const email = formData.email.toLowerCase();
@@ -40,32 +41,27 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await authAPI.register({
+      const result = await register({
         email: formData.email,
         display_name: formData.display_name,
         phone: formData.phone || null,
         password: formData.password
       });
 
-      // Auto-login after successful registration
-      if (response.data.token && response.data.user) {
-        login(response.data.user, response.data.token);
-        navigate('/');
+      if (result.success) {
+        // Show success message
+        setSuccess('Account created successfully! Logging you in...');
+        // Navigate to home after a short delay
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      } else {
+        setError(result.error);
+        setLoading(false);
       }
-
-      // Email verification check commented out - users are immediately active
-      // if (response.data.verificationLink) {
-      //   setVerificationLink(response.data.verificationLink);
-      // }
     } catch (err) {
       console.error('Registration error:', err);
-      if (err.response?.data?.errors) {
-        const validationErrors = err.response.data.errors.map(e => e.msg).join(', ');
-        setError(validationErrors);
-      } else {
-        setError(err.response?.data?.error || 'Registration failed. Please try again.');
-      }
-    } finally {
+      setError('Registration failed. Please try again.');
       setLoading(false);
     }
   };
@@ -90,6 +86,7 @@ function Register() {
       ) : ( */}
 
       {error && <div className="error-message">{error}</div>}
+      {success && <div className="success-message">{success}</div>}
       <div style={{ backgroundColor: '#e7f3ff', padding: '10px', borderRadius: '4px', marginBottom: '20px' }}>
         <p style={{ fontSize: '14px', margin: 0 }}>
           <strong>Note:</strong> Only @uww.edu email addresses are allowed to register.
