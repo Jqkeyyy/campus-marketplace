@@ -191,7 +191,7 @@ router.get('/:userId', async (req, res) => {
 router.get('/', authenticateToken, isAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT "UserID", email, display_name, phone, created_at, is_admin, status
+      `SELECT "UserID" as user_id, email, display_name, phone, created_at, is_admin, status
        FROM "User" ORDER BY created_at DESC`
     );
 
@@ -213,7 +213,7 @@ router.patch('/:userId/status', authenticateToken, isAdmin, async (req, res) => 
   try {
     const result = await db.query(
       `UPDATE "User" SET status = $1 WHERE "UserID" = $2
-       RETURNING "UserID", email, display_name, status`,
+       RETURNING "UserID" as user_id, email, display_name, status`,
       [status, req.params.userId]
     );
 

@@ -10,6 +10,7 @@ function AdminUsers() {
   const [actionLoading, setActionLoading] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [displayLimit, setDisplayLimit] = useState(50);
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -71,7 +72,7 @@ function AdminUsers() {
   };
 
   // Filter users based on search term and status
-  const filteredUsers = users.filter(user => {
+  const allFilteredUsers = users.filter(user => {
     const matchesSearch = searchTerm === '' ||
       user.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -80,6 +81,14 @@ function AdminUsers() {
 
     return matchesSearch && matchesStatus;
   });
+
+  // Limit displayed users for pagination
+  const filteredUsers = allFilteredUsers.slice(0, displayLimit);
+  const hasMore = allFilteredUsers.length > displayLimit;
+
+  const handleLoadMore = () => {
+    setDisplayLimit(prev => prev + 50);
+  };
 
   if (loading) {
     return (
@@ -111,7 +120,8 @@ function AdminUsers() {
         <div>
           <h1 className="page-title">User Management</h1>
           <p className="page-subtitle">
-            Showing {filteredUsers.length} of {users.length} users
+            Showing {filteredUsers.length} of {allFilteredUsers.length} users
+            {allFilteredUsers.length !== users.length && ` (${users.length} total)`}
           </p>
         </div>
         <Link to="/admin" className="btn btn-secondary">Back to Dashboard</Link>
@@ -238,6 +248,18 @@ function AdminUsers() {
           </div>
         )}
       </div>
+
+      {/* Load More Button */}
+      {hasMore && (
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Showing {filteredUsers.length} of {allFilteredUsers.length} users
+          </p>
+          <button className="btn btn-primary" onClick={handleLoadMore}>
+            Load More (50)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

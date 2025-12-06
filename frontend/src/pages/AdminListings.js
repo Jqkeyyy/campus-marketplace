@@ -9,6 +9,7 @@ function AdminListings() {
   const [actionLoading, setActionLoading] = useState(null);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [displayLimit, setDisplayLimit] = useState(50);
 
   useEffect(() => {
     fetchListings();
@@ -56,7 +57,7 @@ function AdminListings() {
     }
   };
 
-  const filteredListings = listings.filter(listing => {
+  const allFilteredListings = listings.filter(listing => {
     const matchesStatus = filter === 'all' || listing.status === filter;
 
     const matchesSearch = searchTerm === '' ||
@@ -67,6 +68,14 @@ function AdminListings() {
 
     return matchesStatus && matchesSearch;
   });
+
+  // Limit displayed listings for pagination
+  const filteredListings = allFilteredListings.slice(0, displayLimit);
+  const hasMore = allFilteredListings.length > displayLimit;
+
+  const handleLoadMore = () => {
+    setDisplayLimit(prev => prev + 50);
+  };
 
   if (loading) {
     return (
@@ -98,7 +107,8 @@ function AdminListings() {
         <div>
           <h1 className="page-title">Listing Moderation</h1>
           <p className="page-subtitle">
-            Showing {filteredListings.length} of {listings.length} listings
+            Showing {filteredListings.length} of {allFilteredListings.length} listings
+            {allFilteredListings.length !== listings.length && ` (${listings.length} total)`}
           </p>
         </div>
         <Link to="/admin" className="btn btn-secondary">Back to Dashboard</Link>
@@ -207,6 +217,18 @@ function AdminListings() {
           </div>
         )}
       </div>
+
+      {/* Load More Button */}
+      {hasMore && (
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Showing {filteredListings.length} of {allFilteredListings.length} listings
+          </p>
+          <button className="btn btn-primary" onClick={handleLoadMore}>
+            Load More (50)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
