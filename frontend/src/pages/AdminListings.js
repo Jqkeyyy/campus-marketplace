@@ -8,6 +8,7 @@ function AdminListings() {
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchListings();
@@ -55,9 +56,17 @@ function AdminListings() {
     }
   };
 
-  const filteredListings = filter === 'all'
-    ? listings
-    : listings.filter(listing => listing.status === filter);
+  const filteredListings = listings.filter(listing => {
+    const matchesStatus = filter === 'all' || listing.status === filter;
+
+    const matchesSearch = searchTerm === '' ||
+      listing.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      listing.seller_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      listing.seller_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      listing.category_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesStatus && matchesSearch;
+  });
 
   if (loading) {
     return (
@@ -88,12 +97,25 @@ function AdminListings() {
       <div className="page-header flex-between">
         <div>
           <h1 className="page-title">Listing Moderation</h1>
-          <p className="page-subtitle">{filteredListings.length} listings</p>
+          <p className="page-subtitle">
+            Showing {filteredListings.length} of {listings.length} listings
+          </p>
         </div>
         <Link to="/admin" className="btn btn-secondary">Back to Dashboard</Link>
       </div>
 
+      {/* Search and Filters */}
       <div className="card mb-2">
+        <div className="flex gap-2" style={{ marginBottom: '1rem' }}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search by title, seller, or category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ flex: 1 }}
+          />
+        </div>
         <div className="flex gap-1">
           <button
             className={`btn btn-small ${filter === 'all' ? 'btn-primary' : 'btn-outline'}`}
@@ -181,7 +203,7 @@ function AdminListings() {
 
         {filteredListings.length === 0 && (
           <div className="empty-state">
-            <p>No listings found.</p>
+            <p>No listings found matching your search or filter.</p>
           </div>
         )}
       </div>

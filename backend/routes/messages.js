@@ -56,7 +56,7 @@ router.get('/listing/:listingId/user/:otherUserId', authenticateToken, async (re
        WHERE m."ListingID" = $1
          AND ((m."SellerID" = $2 AND m."BuyerID" = $3)
            OR (m."SellerID" = $3 AND m."BuyerID" = $2))
-       ORDER BY m.sent_at ASC`,
+       ORDER BY m.sent_at DESC`,
       [listingId, req.user.UserID, otherUserId]
     );
 

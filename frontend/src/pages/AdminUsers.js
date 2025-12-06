@@ -8,6 +8,8 @@ function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -68,6 +70,17 @@ function AdminUsers() {
     }
   };
 
+  // Filter users based on search term and status
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = searchTerm === '' ||
+      user.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
   if (loading) {
     return (
       <div>
@@ -97,9 +110,51 @@ function AdminUsers() {
       <div className="page-header flex-between">
         <div>
           <h1 className="page-title">User Management</h1>
-          <p className="page-subtitle">{users.length} total users</p>
+          <p className="page-subtitle">
+            Showing {filteredUsers.length} of {users.length} users
+          </p>
         </div>
         <Link to="/admin" className="btn btn-secondary">Back to Dashboard</Link>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="card mb-2">
+        <div className="flex gap-2" style={{ marginBottom: '1rem' }}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ flex: 1 }}
+          />
+        </div>
+        <div className="flex gap-1">
+          <button
+            className={`btn btn-small ${statusFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setStatusFilter('all')}
+          >
+            All ({users.length})
+          </button>
+          <button
+            className={`btn btn-small ${statusFilter === 'active' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setStatusFilter('active')}
+          >
+            Active ({users.filter(u => u.status === 'active').length})
+          </button>
+          <button
+            className={`btn btn-small ${statusFilter === 'suspended' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setStatusFilter('suspended')}
+          >
+            Suspended ({users.filter(u => u.status === 'suspended').length})
+          </button>
+          <button
+            className={`btn btn-small ${statusFilter === 'banned' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setStatusFilter('banned')}
+          >
+            Banned ({users.filter(u => u.status === 'banned').length})
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -115,7 +170,7 @@ function AdminUsers() {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
+            {filteredUsers.map(user => (
               <tr key={user.user_id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <td style={{ padding: '1rem' }}>
                   <strong>{user.display_name}</strong>
@@ -176,6 +231,12 @@ function AdminUsers() {
             ))}
           </tbody>
         </table>
+
+        {filteredUsers.length === 0 && (
+          <div className="empty-state">
+            <p>No users found matching your search.</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -64,9 +64,18 @@ function Favorites() {
           {favorites.map((listing) => (
             <Link key={listing.listing_id} to={`/listings/${listing.listing_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card listing-card">
+                {listing.primary_image_url && (
+                  <img
+                    src={listing.primary_image_url}
+                    alt={listing.title}
+                    className="listing-card-image"
+                  />
+                )}
                 <h3 className="listing-card-title">{listing.title}</h3>
-                <p className="listing-card-price">${listing.price}</p>
-                <p className="text-muted">Seller: {listing.seller_name}</p>
+                <p className="listing-card-price">${listing.price.toFixed(2)}</p>
+                <div className="listing-card-info">
+                  <span className="badge badge-primary">{listing.category_name}</span>
+                </div>
               </div>
             </Link>
           ))}
