@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { listingsAPI, categoriesAPI, favoritesAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +50,7 @@ function Home() {
   };
 
   const fetchListings = async (searchFilters = filters, append = false) => {
+    if (append && loadingMore) return;
     try {
       if (append) {
         setLoadingMore(true);
@@ -86,6 +87,27 @@ function Home() {
   const handleLoadMore = () => {
     fetchListings(filters, true);
   };
+
+  const sentinelRef = useRef(null);
+  const hasMore = listings.length < total;
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: '400px' }
+    );
+
+    const node = sentinelRef.current;
+    if (node) observer.observe(node);
+
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, offset]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -254,18 +276,13 @@ function Home() {
             ))}
           </div>
 
-          {listings.length < total && (
-            <div style={{ textAlign: 'center', marginTop: '2rem', marginBottom: '2rem' }}>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                Showing {listings.length} of {total} listings
+          {hasMore && (
+            <div ref={sentinelRef} style={{ textAlign: 'center', marginTop: '2rem', marginBottom: '2rem' }}>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                {loadingMore
+                  ? 'Loading more...'
+                  : `Showing ${listings.length} of ${total} listings`}
               </p>
-              <button
-                className="btn btn-primary"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-              >
-                {loadingMore ? 'Loading...' : 'Load More'}
-              </button>
             </div>
           )}
         </>
