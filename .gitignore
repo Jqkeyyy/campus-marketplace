@@ -10,6 +10,9 @@ node_modules/
 frontend/build/
 dist/
 
+# Vercel
+.vercel/
+
 # Logs
 logs/
 *.log
