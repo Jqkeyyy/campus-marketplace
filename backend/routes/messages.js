@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
+const { messageLimiter } = require('../middleware/rateLimits');
 
 // Get user's conversations (unique listing/user pairs)
 router.get('/conversations', authenticateToken, async (req, res) => {
@@ -68,9 +69,9 @@ router.get('/listing/:listingId/user/:otherUserId', authenticateToken, async (re
 });
 
 // Send a message
-router.post('/', authenticateToken, [
-  body('listing_id').isInt(),
-  body('receiver_id').isInt(),
+router.post('/', messageLimiter, authenticateToken, [
+  body('listing_id').isInt().toInt(),
+  body('receiver_id').isInt().toInt(),
   body('body').trim().isLength({ min: 1, max: 2000 })
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -91,9 +92,28 @@ router.post('/', authenticateToken, [
       return res.status(404).json({ error: 'Listing not found' });
     }
 
+    const listingOwnerId = listingCheck.rows[0].UserID;
+    if (req.user.UserID !== listingOwnerId && receiver_id !== listingOwnerId) {
+      return res.status(403).json({ error: 'Messages must be sent to the listing owner' });
+    }
+
+    if (req.user.UserID === listingOwnerId) {
+      const conversationCheck = await db.query(
+        `SELECT 1 FROM "Message"
+         WHERE "ListingID" = $1
+           AND (("SellerID" = $2 AND "BuyerID" = $3)
+             OR ("SellerID" = $3 AND "BuyerID" = $2))
+         LIMIT 1`,
+        [listing_id, req.user.UserID, receiver_id]
+      );
+      if (conversationCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'The buyer must start the conversation' });
+      }
+    }
+
     // Verify receiver exists
     const receiverCheck = await db.query(
-      'SELECT "UserID" FROM "User" WHERE "UserID" = $1 AND status = \'active\'',
+      'SELECT "UserID" FROM "User" WHERE "UserID" = $1 AND status = \'active\' AND email_verified = true',
       [receiver_id]
     );
 

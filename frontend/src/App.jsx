@@ -7,6 +7,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import ListingDetail from './pages/ListingDetail';
 import CreateListing from './pages/CreateListing';
 import EditListing from './pages/EditListing';
@@ -81,6 +82,7 @@ function AppContent() {
               </PublicRoute>
             }
           />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/listings/:id" element={<ListingDetail />} />
           <Route
             path="/create-listing"

@@ -21,9 +21,9 @@ function Register() {
     setError('');
     setSuccess('');
 
-    // Validate @uww.edu or @test.com email (for development)
+    // The server sends a verification link to this address.
     const email = formData.email.toLowerCase();
-    if (!email.endsWith('@uww.edu') && !email.endsWith('@test.com')) {
+    if (!email.endsWith('@uww.edu')) {
       setError('Email must be a valid @uww.edu address');
       return;
     }
@@ -33,8 +33,8 @@ function Register() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (formData.password.length < 12 || formData.password.length > 72) {
+      setError('Password must be between 12 and 72 characters');
       return;
     }
 
@@ -49,12 +49,8 @@ function Register() {
       });
 
       if (result.success) {
-        // Show success message
-        setSuccess('Account created successfully! Logging you in...');
-        // Navigate to home after a short delay
-        setTimeout(() => {
-          navigate('/');
-        }, 1500);
+        setSuccess(result.message || 'Check your UWW inbox to verify your email.');
+        setLoading(false);
       } else {
         setError(result.error);
         setLoading(false);
@@ -70,8 +66,7 @@ function Register() {
     <div className="card" style={{ maxWidth: '400px', margin: '0 auto' }}>
       <h2 className="page-title">Register</h2>
 
-      {/* Email verification message commented out - users are immediately active after registration */}
-      {/* {success ? (
+      {success ? (
         <div>
           <div className="success-message">
             {success}
@@ -83,10 +78,9 @@ function Register() {
             Go to Login
           </button>
         </div>
-      ) : ( */}
-
+      ) : (
+      <>
       {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
       <div style={{ backgroundColor: '#e7f3ff', padding: '10px', borderRadius: '4px', marginBottom: '20px' }}>
         <p style={{ fontSize: '14px', margin: 0 }}>
           <strong>Note:</strong> Only @uww.edu email addresses are allowed to register.
@@ -150,8 +144,8 @@ function Register() {
       <p className="text-center mt-3">
         Already have an account? <Link to="/login">Login here</Link>
       </p>
-
-      {/* )} Closing brace commented out with email verification */}
+      </>
+      )}
     </div>
   );
 }

@@ -134,6 +134,7 @@ router.delete('/:categoryId', authenticateToken, isAdmin, async (req, res) => {
 // Get top categories by listing count
 router.get('/stats/top', async (req, res) => {
   const { limit = 10 } = req.query;
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 10, 1), 100);
 
   try {
     const result = await db.query(
@@ -143,7 +144,7 @@ router.get('/stats/top', async (req, res) => {
        GROUP BY c."CategoryID"
        ORDER BY listing_count DESC
        LIMIT $1`,
-      [parseInt(limit)]
+      [safeLimit]
     );
 
     res.json(result.rows);

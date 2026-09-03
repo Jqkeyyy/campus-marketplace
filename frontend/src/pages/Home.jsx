@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { listingsAPI, categoriesAPI, favoritesAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function Home() {
+  const { isAuthenticated } = useAuth();
   const [listings, setListings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,12 +26,11 @@ function Home() {
     fetchCategories();
     fetchListings();
     fetchUserFavorites();
-  }, []);
+  }, [isAuthenticated]);
 
   const fetchUserFavorites = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return; // User not logged in
+      if (!isAuthenticated) return;
 
       const response = await favoritesAPI.getAll();
       const favoritedIds = new Set(response.data.map(fav => fav.listing_id));
@@ -100,8 +101,7 @@ function Home() {
     e.preventDefault(); // Prevent navigation to listing detail
     e.stopPropagation();
 
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!isAuthenticated) {
       window.location.href = '/login';
       return;
     }

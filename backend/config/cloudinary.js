@@ -8,13 +8,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Log config status (helpful for debugging)
-if (process.env.CLOUDINARY_CLOUD_NAME) {
-  console.log('Cloudinary configured for cloud:', process.env.CLOUDINARY_CLOUD_NAME);
-} else {
-  console.warn('WARNING: Cloudinary credentials not found in environment variables');
-}
-
 // Configure multer for memory storage (we'll upload buffer to Cloudinary)
 const storage = multer.memoryStorage();
 
@@ -24,8 +17,14 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept only images
-    if (file.mimetype.startsWith('image/')) {
+    const allowedTypes = new Set([
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/avif'
+    ]);
+    if (allowedTypes.has(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'), false);
@@ -40,6 +39,7 @@ const uploadToCloudinary = (buffer, folder = 'campus-marketplace') => {
       {
         folder: folder,
         resource_type: 'image',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
         transformation: [
           { width: 1200, height: 1200, crop: 'limit' }, // Max dimensions
           { quality: 'auto' }, // Auto optimize quality

@@ -1,27 +1,73 @@
 const jwt = require('jsonwebtoken');
+const db = require('../config/database');
+const { jwtVerifyOptions } = require('../config/auth');
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+const getToken = (req) => {
+  const authHeader = req.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  return req.cookies?.auth_token;
+};
 
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
+const loadAuthenticatedUser = async (token) => {
+  const payload = jwt.verify(token, process.env.JWT_SECRET, jwtVerifyOptions);
+  const result = await db.query(
+    `SELECT "UserID", email, display_name, phone, created_at, is_admin, status, email_verified
+     FROM "User" WHERE "UserID" = $1`,
+    [payload.sub]
+  );
+
+  const user = result.rows[0];
+  if (!user || user.status !== 'active' || !user.email_verified) {
+    return null;
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+  return user;
+};
+
+const authenticateToken = async (req, res, next) => {
+  const token = getToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const user = await loadAuthenticatedUser(token);
+    if (!user) {
+      return res.status(401).json({ error: 'Account is inactive or unavailable' });
     }
     req.user = user;
-    next();
-  });
+    return next();
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+    return next(error);
+  }
+};
+
+const optionalAuthenticateToken = async (req, res, next) => {
+  const token = getToken(req);
+  if (!token) {
+    return next();
+  }
+
+  try {
+    req.user = await loadAuthenticatedUser(token);
+  } catch (error) {
+    if (error.name !== 'JsonWebTokenError' && error.name !== 'TokenExpiredError') {
+      return next(error);
+    }
+  }
+  return next();
 };
 
 const isAdmin = (req, res, next) => {
-  if (!req.user || !req.user.is_admin) {
+  if (!req.user?.is_admin) {
     return res.status(403).json({ error: 'Admin access required' });
   }
-  next();
+  return next();
 };
 
-module.exports = { authenticateToken, isAdmin };
+module.exports = { authenticateToken, optionalAuthenticateToken, isAdmin };

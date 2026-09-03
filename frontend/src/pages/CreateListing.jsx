@@ -94,29 +94,28 @@ function CreateListing() {
         category_id: parseInt(formData.category_id)
       };
 
-      // Upload images if provided
+      const response = await listingsAPI.create(listingData);
+      const listingId = response.data.listing_id;
+
+      // Upload images only after the listing exists, so every upload is owned.
       if (imageFiles.length > 0) {
         setUploadingImage(true);
         try {
-          const uploadedImages = [];
-          for (const file of imageFiles) {
-            const uploadResponse = await imagesAPI.upload(file);
-            uploadedImages.push({ url: uploadResponse.data.url });
+          for (let index = 0; index < imageFiles.length; index += 1) {
+            await imagesAPI.upload(imageFiles[index], listingId, index === 0);
           }
-          listingData.images = uploadedImages;
         } catch (uploadErr) {
-          setError('Failed to upload images. Please try again.');
+          setError('The listing was created, but an image failed to upload. You can retry from Edit Listing.');
           setLoading(false);
           setUploadingImage(false);
+          navigate(`/edit-listing/${listingId}`);
           return;
         }
         setUploadingImage(false);
       }
 
-      const response = await listingsAPI.create(listingData);
-
       // Redirect to the new listing
-      navigate(`/listings/${response.data.listing_id}`);
+      navigate(`/listings/${listingId}`);
     } catch (err) {
       console.error('Create listing error:', err);
       console.error('Error response:', err.response?.data);

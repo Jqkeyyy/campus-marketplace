@@ -36,7 +36,7 @@ The listing grid on the Home page implements a responsive flexbox layout that sm
 
 ### State Management and Data Flow
 
-The application uses React Context API for global state management, particularly for authentication. The AuthContext provides user information and authentication status throughout the component tree without prop drilling. Login state persists across page refreshes using localStorage, and axios interceptors automatically attach JWT tokens to API requests, creating a seamless authenticated experience.
+The application uses React Context API for global state management, particularly for authentication. The AuthContext provides user information and authentication status throughout the component tree without prop drilling. Login state persists through a secure, HTTP-only cookie that frontend JavaScript cannot read.
 
 Component-level state manages local concerns like form inputs, loading states, and error messages. The separation between global and local state keeps components focused and maintainable. API calls are centralized in a services layer, providing a consistent interface for backend communication and simplifying error handling.
 
@@ -45,12 +45,12 @@ Component-level state manages local concerns like form inputs, loading states, a
 ## Part 2: Key Features
 
 ### User Authentication and Account Management
-- Secure user registration with email validation and password hashing (bcrypt)
-- JWT-based authentication with 7-day token expiration
+- UWW email ownership verification with short-lived, hashed verification tokens
+- JWT-based authentication in secure, HTTP-only cookies
 - Persistent login sessions across browser refreshes
 - User profile management with display name and contact information
 - Role-based access control (standard users vs administrators)
-- Password security with salted hashing (10 rounds)
+- Password security with salted bcrypt hashing (12 rounds)
 
 ### Listing Management
 - Create new listings with comprehensive details (title, description, price, category, condition)
@@ -109,13 +109,14 @@ Component-level state manages local concerns like form inputs, loading states, a
 
 ### Security Features
 - SQL injection prevention via parameterized queries
-- XSS protection through input sanitization
+- Security headers and browser-side React escaping
 - CORS protection with configured allowed origins
-- JWT token verification on protected routes
+- JWT verification plus live account-status and role checks on protected routes
 - Ownership verification before updates/deletes
 - Admin privilege checks for sensitive operations
-- Password strength requirements
-- Session timeout after 7 days
+- Password length requirements that respect bcrypt's safe input limit
+- Rate limits for authentication, messaging, API requests, and uploads
+- Session timeout after 1 day
 
 ### User Experience Enhancements
 - Loading spinners during async operations
@@ -220,18 +221,21 @@ The project taught me I can build substantial applications from scratch. This co
 
 ---
 
-## Installation and Setup(If you wanted to clone it and run in yourself)
+## Installation and setup
 
 ### Prerequisites
-- Node.js 16 and npm
+- Node.js 20 or newer and npm
 - PostgreSQL 16
+- A SendGrid account with a verified sender
+- A Cloudinary account for image uploads
 
 ### Backend Setup
 
-1. Navigate to backend directory:
+1. Install backend dependencies and create the local environment file:
 ```bash
 cd backend
 npm install
+cp .env.example .env
 ```
 
 2. Create database:
@@ -246,11 +250,7 @@ CREATE DATABASE campus_marketplace;
 psql -U postgres -d campus_marketplace -f schema.sql
 ```
 
-4. Configure environment variables:
-```bash
-cp .env
-# Edit .env with your database credentials
-```
+4. Edit `backend/.env`. Use a randomly generated `JWT_SECRET` of at least 32 characters and configure SendGrid, Cloudinary, the frontend URL, and the exact allowed CORS origin. Never commit `.env`.
 
 5. Start backend server:
 ```bash
@@ -258,14 +258,15 @@ npm run dev  # Development mode with auto-reload
 npm start    # Production mode
 ```
 
-Backend will run on http://localhost:5000 or (real) https://campus-marketplace-c34u.onrender.com
+The backend runs on `http://localhost:5000` by default.
 
 ### Frontend Setup
 
-1. Navigate to frontend directory:
+1. Install frontend dependencies and create its environment file:
 ```bash
 cd frontend
 npm install
+cp .env.example .env
 ```
 
 2. Start frontend development server:
@@ -273,9 +274,21 @@ npm install
 npm start
 ```
 
-Frontend will run on http://localhost:3000 or (real) uwwmarketplace.com
+The frontend runs on `http://localhost:3000` by default.
 
-### Default Admin Account
-- Email: admin@uww.edu
-- Password: admin123
+### Updating an existing database
 
+Run the security migration before deploying this version:
+
+```bash
+psql "$DATABASE_URL" -f backend/migrations/001_security_hardening.sql
+```
+
+Existing users are marked verified by the migration. New users must verify their UWW email before they can sign in.
+
+### Production security
+
+- Set `NODE_ENV=production`, `DB_SSL=true`, `COOKIE_SAME_SITE=none`, and HTTPS URLs for `CORS_ORIGIN`, `FRONTEND_URL`, and `VITE_API_URL`.
+- Prefer serving the API from a same-site domain such as `api.example.com`; browsers may block cross-site cookies when the frontend and API use unrelated domains.
+- Create administrators out-of-band with a unique password. The project intentionally ships with no default administrator.
+- Configure Content-Security-Policy and `Referrer-Policy: no-referrer` in the frontend hosting platform.

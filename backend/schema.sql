@@ -17,9 +17,13 @@ CREATE TABLE "User" (
     phone VARCHAR(255),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    status VARCHAR(255) DEFAULT 'active',
+    status VARCHAR(255) NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'active', 'suspended', 'banned')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_admin BOOLEAN DEFAULT FALSE
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    verification_token_hash VARCHAR(64),
+    verification_expires_at TIMESTAMPTZ
 );
 
 -- Category Table
@@ -56,6 +60,7 @@ CREATE TABLE "Message" (
 CREATE TABLE "Image" (
     "ImageID" SERIAL PRIMARY KEY,
     "URL" VARCHAR(255) NOT NULL,
+    public_id VARCHAR(255),
     is_primary BOOLEAN DEFAULT FALSE,
     "ListingID" INTEGER NOT NULL REFERENCES "Listing"("ListingID") ON DELETE CASCADE
 );
@@ -93,11 +98,6 @@ INSERT INTO "Category" (name) VALUES
     ('Musical Instruments'),
     ('Vehicles'),
     ('Other');
-
--- Create a sample admin user (password: admin123)
--- Hash generated with bcrypt, rounds=10
-INSERT INTO "User" (email, display_name, password_hash, is_admin, status) VALUES
-    ('admin@uww.edu', 'Admin User', '$2b$10$rKJ8Xq5YLXvZ8hW3Kx3qHe7FZnX5YJvKGxQZJZqW3XqZ8hW3Kx3qH', TRUE, 'active');
 
 -- ============================================
 -- SAMPLE QUERIES (for reference, not executed)

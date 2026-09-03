@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -8,31 +8,19 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const publicAuthPaths = ['/login', '/register', '/verify-email'];
+      const isSessionCheck = error.config?.url?.endsWith('/users/me');
+      if (!isSessionCheck && !publicAuthPaths.includes(window.location.pathname)) {
+        window.location.assign('/login');
+      }
     }
     return Promise.reject(error);
   }
@@ -42,6 +30,9 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (userData) => api.post('/users/register', userData),
   login: (credentials) => api.post('/users/login', credentials),
+  logout: () => api.post('/users/logout'),
+  verifyEmail: (token) => api.post('/users/verify-email', { token }),
+  resendVerification: (email) => api.post('/users/resend-verification', { email }),
   getCurrentUser: () => api.get('/users/me'),
   updateProfile: (userData) => api.put('/users/me', userData),
   getUserById: (userId) => api.get(`/users/${userId}`),
@@ -88,14 +79,15 @@ export const messagesAPI = {
 // Images API
 export const imagesAPI = {
   getByListing: (listingId) => api.get(`/images/listing/${listingId}`),
-  add: (imageData) => api.post('/images', imageData),
   setPrimary: (imageId) => api.patch(`/images/${imageId}/primary`),
   delete: (imageId) => api.delete(`/images/${imageId}`),
-  upload: (file) => {
+  upload: (file, listingId, isPrimary = false) => {
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('listing_id', listingId);
+    formData.append('is_primary', String(isPrimary));
     return api.post('/images/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': undefined }
     });
   }
 };

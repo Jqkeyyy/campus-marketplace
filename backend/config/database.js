@@ -1,11 +1,25 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
-// Support both DATABASE_URL (production) and individual vars (local dev)
+// Support both DATABASE_URL (production) and individual vars (local dev).
+// TLS verification is enabled by default in production. Set DB_SSL_CA when
+// the database provider uses a private certificate authority.
+const useSsl = process.env.DB_SSL === 'true' || (
+  process.env.NODE_ENV === 'production' && process.env.DB_SSL !== 'false'
+);
+const ssl = useSsl
+  ? {
+      rejectUnauthorized: true,
+      ...(process.env.DB_SSL_CA && {
+        ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n'),
+      }),
+    }
+  : false;
+
 const poolConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
@@ -22,16 +36,6 @@ const poolConfig = process.env.DATABASE_URL
     };
 
 // 👇 add these logs
-console.log('Using DATABASE_URL?', !!process.env.DATABASE_URL);
-if (process.env.DATABASE_URL) {
-  try {
-    const parts = process.env.DATABASE_URL.split('@')[1]?.split('?')[0];
-    console.log('DB host (from URL):', parts);
-  } catch {
-    console.log('Could not parse DB host from DATABASE_URL');
-  }
-}
-
 const pool = new Pool(poolConfig);
 
 // Test connection

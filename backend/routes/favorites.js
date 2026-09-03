@@ -122,6 +122,7 @@ router.get('/count/:listingId', async (req, res) => {
 // Get most favorited listings
 router.get('/stats/popular', async (req, res) => {
   const { limit = 10 } = req.query;
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 10, 1), 100);
 
   try {
     const result = await db.query(
@@ -141,7 +142,7 @@ router.get('/stats/popular', async (req, res) => {
                 c.name, u.display_name
        ORDER BY favorite_count DESC
        LIMIT $1`,
-      [parseInt(limit)]
+      [safeLimit]
     );
 
     const listings = result.rows.map(listing => ({

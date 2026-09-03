@@ -1,89 +1,81 @@
+require('dotenv').config({ quiet: true });
+
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const { apiLimiter } = require('./middleware/rateLimits');
+const { corsOrigin, requireTrustedOrigin } = require('./middleware/requestSecurity');
+
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must contain at least 32 characters');
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+app.disable('x-powered-by');
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  strictTransportSecurity: isProduction ? undefined : false,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors({
+  origin: corsOrigin,
+  credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+app.use(cookieParser());
+app.use(requireTrustedOrigin);
+app.use('/api', apiLimiter);
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
+if (!isProduction) {
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+  });
+}
 
-// Import routes
-const usersRoutes = require('./routes/users');
-const listingsRoutes = require('./routes/listings');
-const categoriesRoutes = require('./routes/categories');
-const favoritesRoutes = require('./routes/favorites');
-const messagesRoutes = require('./routes/messages');
-const imagesRoutes = require('./routes/images');
+app.use('/api/users', require('./routes/users'));
+app.use('/api/listings', require('./routes/listings'));
+app.use('/api/categories', require('./routes/categories'));
+app.use('/api/favorites', require('./routes/favorites'));
+app.use('/api/messages', require('./routes/messages'));
+app.use('/api/images', require('./routes/images'));
 
-// API Routes
-app.use('/api/users', usersRoutes);
-app.use('/api/listings', listingsRoutes);
-app.use('/api/categories', categoriesRoutes);
-app.use('/api/favorites', favoritesRoutes);
-app.use('/api/messages', messagesRoutes);
-app.use('/api/images', imagesRoutes);
-
-// Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Campus Marketplace API',
-    version: '1.0.0',
-    endpoints: {
-      users: '/api/users',
-      listings: '/api/listings',
-      categories: '/api/categories',
-      favorites: '/api/favorites',
-      messages: '/api/messages',
-      images: '/api/images',
-      health: '/api/health'
-    }
-  });
+  res.json({ message: 'Campus Marketplace API', version: '1.0.0' });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
-  res.status(err.status || 500).json({ 
-    error: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  if (res.headersSent) {
+    return next(err);
+  }
+  return res.status(err.status || 500).json({
+    error: isProduction ? 'Internal server error' : (err.message || 'Internal server error'),
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`\n=================================`);
-  console.log(`Campus Marketplace API Server`);
-  console.log(`=================================`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Server running on port ${PORT}`);
-  console.log(`API available at: http://localhost:${PORT}`);
-  console.log(`=================================\n`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Campus Marketplace API listening on port ${PORT}`);
+  });
+}
 
 module.exports = app;

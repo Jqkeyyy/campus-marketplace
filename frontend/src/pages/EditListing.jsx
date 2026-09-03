@@ -50,7 +50,7 @@ function EditListing() {
       const listing = response.data;
 
       // Check if user owns this listing
-      if (listing.user_id !== user.UserID) {
+      if (listing.user_id !== user.user_id && !user.is_admin) {
         setError('You do not have permission to edit this listing');
         setTimeout(() => navigate('/'), 2000);
         return;
@@ -178,14 +178,7 @@ function EditListing() {
         setUploadingImages(true);
         for (const file of newImageFiles) {
           try {
-            // Upload to cloudinary/storage
-            const uploadResponse = await imagesAPI.upload(file);
-            // Add to listing
-            await imagesAPI.add({
-              listing_id: parseInt(id),
-              url: uploadResponse.data.url,
-              is_primary: false
-            });
+            await imagesAPI.upload(file, parseInt(id), false);
           } catch (err) {
             console.error('Failed to upload image:', err);
           }
@@ -328,13 +321,13 @@ function EditListing() {
           {existingImages.length > 0 && (
             <div className="mb-2">
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-                Current Images ({existingImages.filter(img => !imagesToDelete.includes(img.ImageID)).length})
+                Current Images ({existingImages.filter(img => !imagesToDelete.includes(img.image_id)).length})
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 {existingImages.map((image) => (
-                  <div key={image.ImageID} style={{ position: 'relative', opacity: imagesToDelete.includes(image.ImageID) ? 0.5 : 1 }}>
+                  <div key={image.image_id} style={{ position: 'relative', opacity: imagesToDelete.includes(image.image_id) ? 0.5 : 1 }}>
                     <img
-                      src={image.URL}
+                      src={image.url}
                       alt="Listing"
                       style={{
                         width: '150px',
@@ -359,7 +352,7 @@ function EditListing() {
                         Primary
                       </span>
                     )}
-                    {imagesToDelete.includes(image.ImageID) ? (
+                    {imagesToDelete.includes(image.image_id) ? (
                       <button
                         type="button"
                         className="btn btn-small btn-secondary"
@@ -370,7 +363,7 @@ function EditListing() {
                           padding: '5px 10px',
                           minWidth: 'auto'
                         }}
-                        onClick={() => undoRemoveExistingImage(image.ImageID)}
+                        onClick={() => undoRemoveExistingImage(image.image_id)}
                       >
                         Undo
                       </button>
@@ -388,7 +381,7 @@ function EditListing() {
                               fontSize: '11px',
                               minWidth: 'auto'
                             }}
-                            onClick={() => setPrimaryImage(image.ImageID)}
+                            onClick={() => setPrimaryImage(image.image_id)}
                           >
                             Set Primary
                           </button>
@@ -403,7 +396,7 @@ function EditListing() {
                             padding: '5px 10px',
                             minWidth: 'auto'
                           }}
-                          onClick={() => removeExistingImage(image.ImageID)}
+                          onClick={() => removeExistingImage(image.image_id)}
                         >
                           ×
                         </button>
